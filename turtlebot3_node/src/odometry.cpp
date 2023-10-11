@@ -225,6 +225,7 @@ bool Odometry::calculate_odometry(const rclcpp::Duration & duration)
 
   double theta = 0.0;
   static double last_theta = 0.0;
+  static double drift_rate = 0.0;
 
   // v = translational velocity [m/s]
   // w = rotational velocity [rad/s]
@@ -254,6 +255,20 @@ bool Odometry::calculate_odometry(const rclcpp::Duration & duration)
     theta = wheels_radius_ * (wheel_r - wheel_l) / wheels_separation_;
     delta_theta = theta;
   }
+
+  /* Use the same as MikeHalletUK did in the opencr code
+   * (https://github.com/ROBOTIS-GIT/turtlebot3/issues/655) */
+  if (wheel_r == 0.0 && wheel_l == 0.0) {
+      /* Not moving */
+      if (delta_theta > -0.0001 && delta_theta < 0.0001) {
+          /* delta_theta is less than max. expected (radians per 30Hz) */
+          /* Keep track of exponential moving average of drift_rate */
+          drift_rate = 0.01 * delta_theta + 0.99 * drift_rate;
+          // RCLCPP_INFO(nh_->get_logger(), "drift_rate: %f\n", drift_rate);
+      }
+  }
+
+  delta_theta = delta_theta - drift_rate; // Correct for IMU yaw drift
 
   // compute odometric pose
   robot_pose_[0] += delta_s * cos(robot_pose_[2] + (delta_theta / 2.0));
