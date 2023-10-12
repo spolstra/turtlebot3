@@ -92,6 +92,8 @@ private:
 
   std::array<double, 3> robot_pose_ = {0.0, 0.0, 0.0};
   std::array<double, 3> robot_vel_ = {0.0, 0.0, 0.0};
+
+  double drift_correct_range_;
 };
 }  // namespace turtlebot3
 }  // namespace robotis

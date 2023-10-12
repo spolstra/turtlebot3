@@ -32,7 +32,8 @@ Odometry::Odometry(
   wheels_radius_(wheels_radius),
   use_imu_(false),
   publish_tf_(false),
-  imu_angle_(0.0f)
+  imu_angle_(0.0f),
+  drift_correct_range_(0.0f)
 {
   RCLCPP_INFO(nh_->get_logger(), "Init Odometry");
 
@@ -41,6 +42,14 @@ Odometry::Odometry(
 
   nh_->declare_parameter("odometry.use_imu");
   nh_->declare_parameter("odometry.publish_tf");
+
+  nh_->declare_parameter("odometry.drift_correct_range");
+
+  nh_->get_parameter_or<float>(
+    "odometry.drift_correct_range",
+    drift_correct_range_,
+    0.0f);
+  RCLCPP_INFO(nh_->get_logger(), "drift_correct_range set to: %f\n", drift_correct_range_);
 
   nh_->get_parameter_or<bool>(
     "odometry.use_imu",
@@ -260,7 +269,7 @@ bool Odometry::calculate_odometry(const rclcpp::Duration & duration)
    * (https://github.com/ROBOTIS-GIT/turtlebot3/issues/655) */
   if (wheel_r == 0.0 && wheel_l == 0.0) {
       /* Not moving */
-      if (delta_theta > -0.0001 && delta_theta < 0.0001) {
+      if (delta_theta > -drift_correct_range_ && delta_theta < drift_correct_range_) {
           /* delta_theta is less than max. expected (radians per 30Hz) */
           /* Keep track of exponential moving average of drift_rate */
           drift_rate = 0.01 * delta_theta + 0.99 * drift_rate;
